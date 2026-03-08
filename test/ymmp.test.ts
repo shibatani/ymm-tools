@@ -123,6 +123,30 @@ describe("buildTextItem", () => {
     expect(built.IsLocked).toBe(true);
     expect(built.Remark).toBe("ymm-auto:img_001:ref");
   });
+
+  test("calculates X coordinate from image position", () => {
+    const built = buildTextItem({
+      text: "https://example.com",
+      frame: 100,
+      length: 200,
+      imageId: "img_001",
+      imageX: 705,
+      imageWidth: 1920,
+      zoom: 50,
+    });
+    // X = 705 - (1920 * 50 / 100 / 2) = 705 - 480 = 225
+    expect((built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(225);
+  });
+
+  test("defaults X to 0 when image params not provided", () => {
+    const built = buildTextItem({
+      text: "https://example.com",
+      frame: 100,
+      length: 200,
+      imageId: "img_001",
+    });
+    expect((built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(0);
+  });
 });
 
 describe("hasRemark", () => {

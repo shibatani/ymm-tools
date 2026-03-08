@@ -55,6 +55,8 @@ export async function step5_insertPhotos(
   data: YmmpData,
   blocks: ImageBlock[],
   photosDir: string,
+  clipWidth: number = CLIP_WIDTH,
+  clipHeight: number = CLIP_HEIGHT,
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   const template = findShapeTemplate(items);
@@ -91,10 +93,12 @@ export async function step5_insertPhotos(
 
     // Get image dimensions for zoom calculation
     let zoom = 100;
+    let imgWidth = 0;
     try {
       const dimensions = imageSize(photoPath);
       if (dimensions.width && dimensions.height) {
-        zoom = calcZoom(dimensions.width, dimensions.height, CLIP_WIDTH, CLIP_HEIGHT);
+        zoom = calcZoom(dimensions.width, dimensions.height, clipWidth, clipHeight);
+        imgWidth = dimensions.width;
       }
     } catch {
       console.warn(`  警告: ${block.group.imageId} の画像サイズ取得失敗。Zoom=100で挿入します。`);
@@ -113,11 +117,15 @@ export async function step5_insertPhotos(
 
     // Insert reference text if URL exists
     if (block.group.referenceUrl) {
+      const imageX = template?.X?.Values[0]?.Value ?? 705.0;
       const textItem = buildTextItem({
         text: block.group.referenceUrl,
         frame: block.frame,
         length: block.length,
         imageId: block.group.imageId,
+        imageX,
+        imageWidth: imgWidth,
+        zoom,
       });
       items.push(textItem);
     }
@@ -168,6 +176,8 @@ export async function step7_insertAi(
   data: YmmpData,
   blocks: ImageBlock[],
   outputDir: string,
+  clipWidth: number = CLIP_WIDTH,
+  clipHeight: number = CLIP_HEIGHT,
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   const template = findShapeTemplate(items);
@@ -199,7 +209,7 @@ export async function step7_insertAi(
     try {
       const dimensions = imageSize(imagePath);
       if (dimensions.width && dimensions.height) {
-        zoom = calcZoom(dimensions.width, dimensions.height, CLIP_WIDTH, CLIP_HEIGHT);
+        zoom = calcZoom(dimensions.width, dimensions.height, clipWidth, clipHeight);
       }
     } catch {
       console.warn(`  警告: ${block.group.imageId} の画像サイズ取得失敗。Zoom=100で挿入します。`);

@@ -215,7 +215,20 @@ export function buildTextItem(params: {
   frame: number;
   length: number;
   imageId: string;
+  imageX?: number;
+  imageWidth?: number;
+  zoom?: number;
 }): YmmpItem {
+  // X = imageX - (imageWidth * zoom / 100 / 2) to align with image left edge
+  let textX = 0;
+  if (
+    params.imageX !== undefined &&
+    params.imageWidth !== undefined &&
+    params.zoom !== undefined
+  ) {
+    textX = params.imageX - (params.imageWidth * params.zoom) / 100 / 2;
+  }
+
   return {
     $type: TEXT_ITEM_TYPE,
     Text: params.text,
@@ -223,7 +236,7 @@ export function buildTextItem(params: {
     FontSize: 24.1, // YMM existing template value (not 24.0)
     BasePoint: "LeftTop",
     FontColor: "#FF000000",
-    X: makeAnimatedValue(0.0) as AnimatedValue,
+    X: makeAnimatedValue(textX) as AnimatedValue,
     Y: makeAnimatedValue(-505.0) as AnimatedValue,
     Z: makeAnimatedValue(0.0) as AnimatedValue,
     Opacity: makeAnimatedValue(100.0) as AnimatedValue,

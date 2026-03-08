@@ -49,6 +49,8 @@ export interface CliOptions {
   output: string;
   dryRun: boolean;
   maxGenerate: number | undefined;
+  clipWidth: number;
+  clipHeight: number;
 }
 
 // AnimatedValue structure in ymmp
