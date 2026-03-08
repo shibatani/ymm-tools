@@ -84,11 +84,20 @@ export function findVoiceItems(items: YmmpItem[]): VoiceEntry[] {
 }
 
 /**
- * Find a ShapeItem template on the template layer
+ * Find a ShapeItem template on the title template layer (Layer 6)
  */
 export function findShapeTemplate(items: YmmpItem[]): YmmpItem | undefined {
   return items.find(
     (item) => item.$type === SHAPE_ITEM_TYPE && item.Layer === LAYER_SHAPE_TEMPLATE,
+  );
+}
+
+/**
+ * Find a ShapeItem template on the clipping layer (Layer 10)
+ */
+export function findClippingTemplate(items: YmmpItem[]): YmmpItem | undefined {
+  return items.find(
+    (item) => item.$type === SHAPE_ITEM_TYPE && item.Layer === LAYER_CLIPPING,
   );
 }
 
@@ -155,7 +164,7 @@ export function detectChapters(items: YmmpItem[]): Chapter[] {
 }
 
 /**
- * Build a ShapeItem for the clipping layer (template clone)
+ * Build a ShapeItem for the clipping layer (clone from Layer 10 template)
  */
 export function buildShapeItem(
   template: YmmpItem,

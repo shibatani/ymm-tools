@@ -7,6 +7,7 @@ import {
   buildShapeItem,
   buildTextItem,
   buildVideoItem,
+  findClippingTemplate,
   findShapeTemplate,
   getItems,
   hasRemark,
@@ -63,9 +64,9 @@ export function step4_insertClipping(
   chapters: Chapter[],
 ): number {
   const items = getItems(data);
-  const template = findShapeTemplate(items);
+  const template = findClippingTemplate(items);
   if (!template) {
-    console.warn("警告: ShapeItemテンプレート (Layer 6) が見つかりません。Step 4 をスキップします。");
+    console.warn("警告: クリッピングテンプレート (Layer 10) が見つかりません。Step 4 をスキップします。");
     return 0;
   }
 
