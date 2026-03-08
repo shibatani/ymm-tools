@@ -58,6 +58,9 @@ export async function step5_insertPhotos(
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   const template = findShapeTemplate(items);
+  if (!template) {
+    console.warn("警告: ShapeItemテンプレート (Layer 6) が見つかりません。デフォルト座標で挿入します。");
+  }
   let inserted = 0;
   const skipped: string[] = [];
 
@@ -98,7 +101,7 @@ export async function step5_insertPhotos(
     }
 
     const uncPath = toWindowsUncPath(photoPath);
-    const imageItem = buildImageItem(template ?? ({} as YmmpItem), {
+    const imageItem = buildImageItem(template, {
       filePath: uncPath,
       frame: block.frame,
       length: block.length,
@@ -203,7 +206,7 @@ export async function step7_insertAi(
     }
 
     const uncPath = toWindowsUncPath(imagePath);
-    const imageItem = buildImageItem(template ?? ({} as YmmpItem), {
+    const imageItem = buildImageItem(template, {
       filePath: uncPath,
       frame: block.frame,
       length: block.length,

@@ -51,7 +51,7 @@ async function generateSingle(
       const prediction = data.predictions?.[0];
       if (!prediction?.bytesBase64Encoded) {
         throw new Error(
-          `API returned no image data: ${JSON.stringify(data).slice(0, 200)}`,
+          `APIから画像データが返されませんでした: ${JSON.stringify(data).slice(0, 200)}`,
         );
       }
       return prediction.bytesBase64Encoded;
@@ -66,7 +66,7 @@ async function generateSingle(
     } else {
       const body = await response.text();
       throw new Error(
-        `API failed after ${MAX_RETRIES} retries: ${response.status} ${body.slice(0, 200)}`,
+        `API ${MAX_RETRIES}回リトライ後も失敗: ${response.status} ${body.slice(0, 200)}`,
       );
     }
   }
@@ -95,22 +95,26 @@ export async function generateImages(
   maxGenerate?: number,
 ): Promise<GenerateResult[]> {
   const limit = pLimit(5);
-  let generated = 0;
+
+  // Slice upfront to avoid race condition on concurrent counter
+  const effectiveTasks =
+    maxGenerate !== undefined ? tasks.slice(0, maxGenerate) : tasks;
+  const skippedTasks =
+    maxGenerate !== undefined ? tasks.slice(maxGenerate) : [];
 
   const results: GenerateResult[] = [];
 
-  const promises = tasks.map((task) =>
-    limit(async () => {
-      // Check max generate limit
-      if (maxGenerate !== undefined && generated >= maxGenerate) {
-        results.push({
-          imageId: task.imageId,
-          success: false,
-          error: `--max-generate ${maxGenerate} 制限`,
-        });
-        return;
-      }
+  // Report skipped tasks due to --max-generate limit
+  for (const task of skippedTasks) {
+    results.push({
+      imageId: task.imageId,
+      success: false,
+      error: `--max-generate ${maxGenerate} 制限`,
+    });
+  }
 
+  const promises = effectiveTasks.map((task) =>
+    limit(async () => {
       // Idempotency: skip if file exists
       if (await Bun.file(task.outputPath).exists()) {
         console.log(`  スキップ: ${task.imageId} は生成済み`);
@@ -127,7 +131,6 @@ export async function generateImages(
         const base64 = await generateSingle(task.prompt, apiKey);
         const buffer = Buffer.from(base64, "base64");
         await Bun.write(task.outputPath, buffer);
-        generated++;
         console.log(`  ✅ ${task.imageId} 完了`);
         results.push({
           imageId: task.imageId,

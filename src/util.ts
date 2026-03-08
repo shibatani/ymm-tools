@@ -24,6 +24,11 @@ export function normalizeSerif(s: string): string {
  */
 export function toWindowsUncPath(macPath: string): string {
   const home = os.homedir();
+  if (!macPath.startsWith(home)) {
+    throw new Error(
+      `パスがホームディレクトリ配下ではありません: ${macPath}\nUNC変換にはホームディレクトリ（${home}）配下のパスが必要です`,
+    );
+  }
   return macPath.replace(home, "\\\\Mac\\Home").replace(/\//g, "\\");
 }
 

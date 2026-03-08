@@ -41,6 +41,12 @@ describe("toWindowsUncPath", () => {
     const input = `${home}/a/b/c.jpg`;
     expect(toWindowsUncPath(input)).toBe("\\\\Mac\\Home\\a\\b\\c.jpg");
   });
+
+  test("throws for paths outside home directory", () => {
+    expect(() => toWindowsUncPath("/tmp/test.jpg")).toThrow(
+      "ホームディレクトリ配下ではありません",
+    );
+  });
 });
 
 describe("calcZoom", () => {

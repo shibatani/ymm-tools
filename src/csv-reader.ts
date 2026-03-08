@@ -39,8 +39,8 @@ function parseCsvContent(content: string): string[][] {
       } else if (ch === ",") {
         row.push(current);
         current = "";
-      } else if (ch === "\n" || (ch === "\r" && content[i + 1] === "\n")) {
-        if (ch === "\r") i++; // skip \r in \r\n
+      } else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && content[i + 1] === "\n") i++; // skip \n in \r\n
         row.push(current);
         current = "";
         if (row.some((c) => c.trim() !== "")) rows.push(row);

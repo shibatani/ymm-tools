@@ -35,15 +35,25 @@ export async function writeYmmp(
 ): Promise<void> {
   const BOM = "\uFEFF";
   const tempPath = filePath + ".tmp";
-  await Bun.write(tempPath, BOM + JSON.stringify(data));
-  await fs.rename(tempPath, filePath);
+  try {
+    await Bun.write(tempPath, BOM + JSON.stringify(data));
+    await fs.rename(tempPath, filePath);
+  } catch (err) {
+    // Clean up temp file on failure
+    await fs.unlink(tempPath).catch(() => {});
+    throw err;
+  }
 }
 
 /**
- * Get all items from ymmp
+ * Get all items from ymmp (throws if structure is invalid)
  */
 export function getItems(data: YmmpData): YmmpItem[] {
-  return data.Timelines[0]?.Items ?? [];
+  const items = data.Timelines[0]?.Items;
+  if (!items) {
+    throw new Error("ymmpに Timelines[0].Items がありません");
+  }
+  return items;
 }
 
 /**
@@ -99,6 +109,12 @@ export function detectChapters(items: YmmpItem[]): Chapter[] {
 
   if (transitions.length === 0) return [];
 
+  // Compute project end from the furthest item
+  const projectEnd = items.reduce(
+    (max, item) => Math.max(max, item.Frame + item.Length),
+    0,
+  );
+
   // Build chapter intervals from gaps between transitions
   const chapters: Chapter[] = [];
   // First chapter: from 0 to first transition
@@ -115,9 +131,7 @@ export function detectChapters(items: YmmpItem[]): Chapter[] {
     const t = transitions[i]!;
     const chapterStart = t.Frame + t.Length;
     const nextTransition = transitions[i + 1];
-    const chapterEnd = nextTransition
-      ? nextTransition.Frame
-      : chapterStart + 10000; // last chapter — approximate
+    const chapterEnd = nextTransition ? nextTransition.Frame : projectEnd;
     chapters.push({
       frame: chapterStart,
       length: chapterEnd - chapterStart,
@@ -147,7 +161,7 @@ export function buildShapeItem(
  * Build an ImageItem for Layer 11 (inserted illustration)
  */
 export function buildImageItem(
-  template: YmmpItem,
+  template: YmmpItem | undefined,
   params: {
     filePath: string;
     frame: number;
@@ -156,10 +170,10 @@ export function buildImageItem(
     imageId: string;
   },
 ): YmmpItem {
-  const x = template.X
+  const x = template?.X
     ? structuredClone(template.X)
     : makeAnimatedValue(705.0);
-  const y = template.Y
+  const y = template?.Y
     ? structuredClone(template.Y)
     : makeAnimatedValue(-459.0);
 
@@ -206,7 +220,7 @@ export function buildTextItem(params: {
     $type: TEXT_ITEM_TYPE,
     Text: params.text,
     Font: "けいふぉんと",
-    FontSize: 24.1,
+    FontSize: 24.1, // YMM existing template value (not 24.0)
     BasePoint: "LeftTop",
     FontColor: "#FF000000",
     X: makeAnimatedValue(0.0) as AnimatedValue,
