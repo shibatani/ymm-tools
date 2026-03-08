@@ -142,9 +142,9 @@ async function main() {
     return;
   }
 
-  // Step 4: Insert clipping templates
-  console.log("\n--- Step 4: クリッピングテンプレート挿入 ---");
-  const clippingInserted = step4_insertClipping(data, chapters);
+  // Step 4: Insert clipping backgrounds per image block
+  console.log("\n--- Step 4: クリッピング背景挿入 ---");
+  const clippingInserted = step4_insertClipping(data, blocks);
   console.log(`挿入: ${clippingInserted}件`);
 
   // Step 5: Insert photo/diagram images
@@ -153,8 +153,6 @@ async function main() {
     data,
     blocks,
     opts.photos,
-    opts.clipWidth,
-    opts.clipHeight,
   );
   console.log(`挿入: ${photoResult.inserted}件`);
   if (photoResult.skipped.length > 0) {
@@ -185,8 +183,6 @@ async function main() {
         data,
         blocks,
         aiOutputDir,
-        opts.clipWidth,
-        opts.clipHeight,
       );
       console.log(`挿入: ${aiResult.inserted}件`);
       if (aiResult.skipped.length > 0) {

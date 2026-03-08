@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { imageSize } from "image-size";
-import type { Chapter, ImageBlock, YmmpData, YmmpItem } from "./types.ts";
+import type { ImageBlock, YmmpData, YmmpItem } from "./types.ts";
 import {
   buildClippingShapeItem,
   buildImageItem,
@@ -11,9 +11,6 @@ import {
   hasRemark,
 } from "./ymmp.ts";
 import {
-  calcZoom,
-  CLIP_HEIGHT,
-  CLIP_WIDTH,
   makeRemark,
   REMARK_PREFIX,
   toWindowsUncPath,
@@ -21,6 +18,7 @@ import {
 import { generateImages, type GenerateResult } from "./imagen.ts";
 import {
   DEFAULT_IMAGE_X,
+  DEFAULT_IMAGE_ZOOM,
   DESC_MAX_LENGTH,
   IMAGE_EXTENSIONS,
   VIDEO_EXTENSIONS,
@@ -55,21 +53,22 @@ function buildItemForFile(
 }
 
 /**
- * Step 4: Insert clipping ShapeItems on Layer 10 for each chapter
+ * Step 4: Insert clipping ShapeItems on Layer 10 for each image block
  */
 export function step4_insertClipping(
   data: YmmpData,
-  chapters: Chapter[],
+  blocks: ImageBlock[],
 ): number {
   const items = getItems(data);
 
   let inserted = 0;
-  for (const chapter of chapters) {
-    const remark = `${REMARK_PREFIX}:clipping:${chapter.frame}`;
+  for (const block of blocks) {
+    const remark = `${REMARK_PREFIX}:clipping:${block.group.imageId}`;
     if (hasRemark(items, remark)) {
       continue; // already inserted
     }
-    const newItem = buildClippingShapeItem(chapter.frame, chapter.length);
+    const newItem = buildClippingShapeItem(block.frame, block.length);
+    newItem.Remark = remark;
     items.push(newItem);
     inserted++;
   }
@@ -84,8 +83,6 @@ export async function step5_insertPhotos(
   data: YmmpData,
   blocks: ImageBlock[],
   photosDir: string,
-  clipWidth: number = CLIP_WIDTH,
-  clipHeight: number = CLIP_HEIGHT,
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   let inserted = 0;
@@ -127,17 +124,16 @@ export async function step5_insertPhotos(
 
     const photoPath = path.resolve(photosDir, photoFile);
 
-    // Get image dimensions for zoom calculation
-    let zoom = 100;
+    // Use fixed zoom value
+    const zoom = DEFAULT_IMAGE_ZOOM;
     let imgWidth = 0;
     try {
       const dimensions = imageSize(photoPath);
-      if (dimensions.width && dimensions.height) {
-        zoom = calcZoom(dimensions.width, dimensions.height, clipWidth, clipHeight);
+      if (dimensions.width) {
         imgWidth = dimensions.width;
       }
     } catch {
-      console.warn(`  警告: ${block.group.imageId} の画像サイズ取得失敗。Zoom=100で挿入します。`);
+      // imgWidth stays 0, reference text X will default to 0
     }
 
     const uncPath = toWindowsUncPath(photoPath);
@@ -211,8 +207,6 @@ export async function step7_insertAi(
   data: YmmpData,
   blocks: ImageBlock[],
   outputDir: string,
-  clipWidth: number = CLIP_WIDTH,
-  clipHeight: number = CLIP_HEIGHT,
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   let inserted = 0;
@@ -238,16 +232,7 @@ export async function step7_insertAi(
 
     const imagePath = path.resolve(outputDir, imageFile);
 
-    // Get image dimensions
-    let zoom = 100;
-    try {
-      const dimensions = imageSize(imagePath);
-      if (dimensions.width && dimensions.height) {
-        zoom = calcZoom(dimensions.width, dimensions.height, clipWidth, clipHeight);
-      }
-    } catch {
-      console.warn(`  警告: ${block.group.imageId} の画像サイズ取得失敗。Zoom=100で挿入します。`);
-    }
+    const zoom = DEFAULT_IMAGE_ZOOM;
 
     const uncPath = toWindowsUncPath(imagePath);
     const item = buildItemForFile(undefined, uncPath, {

@@ -49,31 +49,35 @@ describe("integration: CSV + ymmp pipeline (Step 1-4)", () => {
     expect(blocks.length + failures.length).toBe(groups.length);
   });
 
-  test("Step 4: inserts clipping ShapeItems for chapters", async () => {
+  test("Step 4: inserts clipping ShapeItems for image blocks", async () => {
+    const groups = await readImageSheet(SAMPLE_CSV);
     const data = await readYmmp(SAMPLE_YMMP);
     const items = getItems(data);
-    const chapters = detectChapters(items);
+    const voices = findVoiceItems(items);
+    const { blocks } = matchEntries(groups, voices);
     const initialCount = items.length;
 
-    const inserted = step4_insertClipping(data, chapters);
-    expect(inserted).toBe(chapters.length);
-    expect(items.length).toBe(initialCount + chapters.length);
+    const inserted = step4_insertClipping(data, blocks);
+    expect(inserted).toBe(blocks.length);
+    expect(items.length).toBe(initialCount + blocks.length);
 
     // Verify inserted items are on the clipping layer
     const clippingItems = items.filter(
       (item) => item.Layer === LAYER_CLIPPING && item.Remark?.startsWith("ymm-auto:clipping:"),
     );
-    expect(clippingItems.length).toBe(chapters.length);
+    expect(clippingItems.length).toBe(blocks.length);
   });
 
   test("Step 4: idempotency - second run inserts nothing", async () => {
+    const groups = await readImageSheet(SAMPLE_CSV);
     const data = await readYmmp(SAMPLE_YMMP);
-    const chapters = detectChapters(getItems(data));
+    const voices = findVoiceItems(getItems(data));
+    const { blocks } = matchEntries(groups, voices);
 
-    step4_insertClipping(data, chapters);
+    step4_insertClipping(data, blocks);
     const countAfterFirst = getItems(data).length;
 
-    const insertedSecond = step4_insertClipping(data, chapters);
+    const insertedSecond = step4_insertClipping(data, blocks);
     expect(insertedSecond).toBe(0);
     expect(getItems(data).length).toBe(countAfterFirst);
   });

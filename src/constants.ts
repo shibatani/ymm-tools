@@ -18,6 +18,9 @@ export const API_CONCURRENCY = 5;
 export const AI_IMAGE_WIDTH = 1456;
 export const AI_IMAGE_HEIGHT = 816;
 
+// Default zoom for inserted images (fits clipping area on Layer 10)
+export const DEFAULT_IMAGE_ZOOM = 79.3;
+
 // Filename sanitization
 export const DESC_MAX_LENGTH = 50;
 
