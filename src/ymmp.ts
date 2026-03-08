@@ -15,6 +15,7 @@ import {
   MAX_TRANSITION_LENGTH,
   DEFAULT_IMAGE_X,
   DEFAULT_IMAGE_Y,
+  REFERENCE_TEXT_X,
   REFERENCE_TEXT_Y,
   REFERENCE_FONT_SIZE,
 } from "./constants.ts";
@@ -320,33 +321,45 @@ export function buildVideoItem(
 
 /**
  * Build a TextItem for the reference text layer (reference URL text)
+ * Matches the style of existing reference text items in ymmp templates.
  */
 export function buildTextItem(params: {
   text: string;
   frame: number;
   length: number;
   imageId: string;
-  imageX?: number;
   imageWidth?: number;
   zoom?: number;
 }): YmmpItem {
-  // X = imageX - (imageWidth * zoom / 100 / 2) to align with image left edge
-  let textX = 0;
-  if (
-    params.imageX !== undefined &&
-    params.imageWidth !== undefined &&
-    params.zoom !== undefined
-  ) {
-    textX = params.imageX - (params.imageWidth * params.zoom) / 100 / 2;
+  // Align text left edge to image left edge
+  // Image left edge = DEFAULT_IMAGE_X - (imageWidth * zoom / 100 / 2)
+  let textX = REFERENCE_TEXT_X;
+  if (params.imageWidth !== undefined && params.zoom !== undefined) {
+    textX = DEFAULT_IMAGE_X - (params.imageWidth * params.zoom) / 100 / 2;
   }
 
   return {
     $type: TEXT_ITEM_TYPE,
     Text: params.text,
+    Decorations: [],
     Font: "けいふぉんと",
-    FontSize: REFERENCE_FONT_SIZE,
+    FontSize: makeAnimatedValue(REFERENCE_FONT_SIZE),
+    LineHeight2: makeAnimatedValue(100),
+    LetterSpacing2: makeAnimatedValue(0),
+    WordWrap: "NoWrap",
+    MaxWidth: makeAnimatedValue(1920),
     BasePoint: "LeftTop",
-    FontColor: "#FF000000",
+    FontColor: "#FFFFFFFF",
+    Style: "Normal",
+    StyleColor: "#FF000000",
+    Bold: false,
+    Italic: false,
+    IsTrimEndSpace: false,
+    IsDevidedPerCharacter: false,
+    DisplayInterval: 0,
+    DisplayDirection: "FromFirst",
+    HideInterval: 0,
+    HideDirection: "FromFirst",
     X: makeAnimatedValue(textX) as AnimatedValue,
     Y: makeAnimatedValue(REFERENCE_TEXT_Y) as AnimatedValue,
     Z: makeAnimatedValue(0.0) as AnimatedValue,

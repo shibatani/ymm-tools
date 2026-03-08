@@ -8,6 +8,7 @@ export const LAYER_REFERENCE_TEXT = 12;
 export const MAX_TRANSITION_LENGTH = 90;
 export const DEFAULT_IMAGE_X = -2.5;
 export const DEFAULT_IMAGE_Y = -154.0;
+export const REFERENCE_TEXT_X = -560.0;
 export const REFERENCE_TEXT_Y = -505.0;
 export const REFERENCE_FONT_SIZE = 24.1;
 

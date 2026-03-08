@@ -107,7 +107,7 @@ describe("buildImageItem", () => {
 });
 
 describe("buildTextItem", () => {
-  test("builds TextItem for reference URL", () => {
+  test("builds TextItem matching template style", () => {
     const built = buildTextItem({
       text: "https://example.com",
       frame: 100,
@@ -117,33 +117,30 @@ describe("buildTextItem", () => {
     expect(built.$type).toContain("TextItem");
     expect(built.Layer).toBe(12);
     expect(built.Font).toBe("けいふぉんと");
-    expect(built.FontSize).toBe(24.1);
+    expect((built.FontSize as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(24.1);
+    expect(built.FontColor).toBe("#FFFFFFFF");
+    expect(built.BasePoint).toBe("LeftTop");
+    expect(built.WordWrap).toBe("NoWrap");
     expect(built.IsLocked).toBe(true);
     expect(built.Remark).toBe("ymm-auto:img_001:ref");
+    // Default X = -560 when no image dimensions provided
+    expect((built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(-560);
+    expect((built.Y as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(-505);
   });
 
-  test("calculates X coordinate from image position", () => {
+  test("aligns text left edge to image left edge", () => {
     const built = buildTextItem({
       text: "https://example.com",
       frame: 100,
       length: 200,
       imageId: "img_001",
-      imageX: 705,
-      imageWidth: 1920,
-      zoom: 50,
+      imageWidth: 1456,
+      zoom: 79.3,
     });
-    // X = 705 - (1920 * 50 / 100 / 2) = 705 - 480 = 225
-    expect((built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(225);
-  });
-
-  test("defaults X to 0 when image params not provided", () => {
-    const built = buildTextItem({
-      text: "https://example.com",
-      frame: 100,
-      length: 200,
-      imageId: "img_001",
-    });
-    expect((built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value).toBe(0);
+    // X = -2.5 - (1456 * 79.3 / 100 / 2) = -2.5 - 577.3 = -579.8
+    const x = (built.X as { Values: Array<{ Value: number }> }).Values[0]!.Value;
+    expect(x).toBeCloseTo(-579.8, 0);
+    expect(built.BasePoint).toBe("LeftTop");
   });
 });
 

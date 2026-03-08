@@ -149,10 +149,12 @@ async function main() {
 
   // Step 5: Insert photo/diagram images
   console.log("\n--- Step 5: 実写/図解画像挿入 ---");
+  const resizedDir = path.join(path.dirname(opts.output), "resized_images");
   const photoResult = await step5_insertPhotos(
     data,
     blocks,
     opts.photos,
+    resizedDir,
   );
   console.log(`挿入: ${photoResult.inserted}件`);
   if (photoResult.skipped.length > 0) {

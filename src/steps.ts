@@ -1,12 +1,11 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { imageSize } from "image-size";
+import sharp from "sharp";
 import type { ImageBlock, YmmpData, YmmpItem } from "./types.ts";
 import {
   buildClippingShapeItem,
   buildImageItem,
   buildTextItem,
-  buildVideoItem,
   getItems,
   hasRemark,
 } from "./ymmp.ts";
@@ -17,7 +16,8 @@ import {
 } from "./util.ts";
 import { generateImages, type GenerateResult } from "./imagen.ts";
 import {
-  DEFAULT_IMAGE_X,
+  AI_IMAGE_WIDTH,
+  AI_IMAGE_HEIGHT,
   DEFAULT_IMAGE_ZOOM,
   DESC_MAX_LENGTH,
   IMAGE_EXTENSIONS,
@@ -38,17 +38,13 @@ function classifyExtension(filePath: string): "image" | "video" | "rejected" | "
 }
 
 /**
- * Build the appropriate item (ImageItem or VideoItem) based on file extension
+ * Build an ImageItem for any file type (always static image, no video playback)
  */
 function buildItemForFile(
   template: YmmpItem | undefined,
   filePath: string,
   params: { frame: number; length: number; zoom: number; imageId: string },
 ): YmmpItem {
-  const kind = classifyExtension(filePath);
-  if (kind === "video") {
-    return buildVideoItem(template, { filePath, ...params });
-  }
   return buildImageItem(template, { filePath, ...params });
 }
 
@@ -83,6 +79,7 @@ export async function step5_insertPhotos(
   data: YmmpData,
   blocks: ImageBlock[],
   photosDir: string,
+  resizedDir: string,
 ): Promise<{ inserted: number; skipped: string[] }> {
   const items = getItems(data);
   let inserted = 0;
@@ -124,19 +121,26 @@ export async function step5_insertPhotos(
 
     const photoPath = path.resolve(photosDir, photoFile);
 
-    // Use fixed zoom value
-    const zoom = DEFAULT_IMAGE_ZOOM;
-    let imgWidth = 0;
-    try {
-      const dimensions = imageSize(photoPath);
-      if (dimensions.width) {
-        imgWidth = dimensions.width;
+    // Resize image to fit clipping area (skip videos)
+    let insertPath = photoPath;
+    let resizedWidth = 0;
+    if (extKind === "image") {
+      try {
+        await fs.mkdir(resizedDir, { recursive: true });
+        const ext = path.extname(photoFile);
+        const resizedPath = path.join(resizedDir, `${block.group.imageId}${ext}`);
+        const result = await sharp(photoPath)
+          .resize(AI_IMAGE_WIDTH, AI_IMAGE_HEIGHT, { fit: "inside" })
+          .toFile(resizedPath);
+        insertPath = resizedPath;
+        resizedWidth = result.width;
+      } catch {
+        console.warn(`  警告: ${block.group.imageId} のリサイズ失敗。元画像で挿入します。`);
       }
-    } catch {
-      // imgWidth stays 0, reference text X will default to 0
     }
 
-    const uncPath = toWindowsUncPath(photoPath);
+    const zoom = DEFAULT_IMAGE_ZOOM;
+    const uncPath = toWindowsUncPath(insertPath);
     const item = buildItemForFile(undefined, uncPath, {
       frame: block.frame,
       length: block.length,
@@ -148,14 +152,12 @@ export async function step5_insertPhotos(
 
     // Insert reference text if URL exists
     if (block.group.referenceUrl) {
-      const imageX = DEFAULT_IMAGE_X;
       const textItem = buildTextItem({
         text: block.group.referenceUrl,
         frame: block.frame,
         length: block.length,
         imageId: block.group.imageId,
-        imageX,
-        imageWidth: imgWidth,
+        imageWidth: resizedWidth || AI_IMAGE_WIDTH,
         zoom,
       });
       items.push(textItem);
