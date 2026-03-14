@@ -3,10 +3,13 @@ import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CliOptions, ImageGroup } from "./types.ts";
 import { CLIP_WIDTH, CLIP_HEIGHT } from "./util.ts";
+import { DEFAULT_STYLE, DEFAULT_NEGATIVE } from "./constants.ts";
+import { runInsert } from "./commands/insert.ts";
+import { runTemplate } from "./commands/template.ts";
 
-export function parseCliArgs(): CliOptions {
+export function parseInsertArgs(args: string[]): CliOptions {
   const { values } = parseArgs({
-    args: Bun.argv.slice(2),
+    args,
     options: {
       csv: { type: "string" },
       ymmp: { type: "string" },
@@ -16,13 +19,17 @@ export function parseCliArgs(): CliOptions {
       "max-generate": { type: "string" },
       "clip-width": { type: "string" },
       "clip-height": { type: "string" },
+      style: { type: "string" },
+      negative: { type: "string" },
+      regenerate: { type: "string" },
+      yes: { type: "boolean", short: "y", default: false },
     },
     strict: true,
   });
 
   if (!values.csv || !values.ymmp || !values.photos || !values.output) {
     console.error(
-      "使用法: bun run src/index.ts --csv <path> --ymmp <path> --photos <dir> --output <path> [--dry-run] [--max-generate N] [--clip-width N] [--clip-height N]",
+      "使用法: bun run src/cli.ts insert --csv <path> --ymmp <path> --photos <dir> --output <path> [--dry-run] [--max-generate N] [--clip-width N] [--clip-height N] [--style <prefix>] [--negative <suffix>] [--regenerate 1,2,3] [-y]",
     );
     process.exit(1);
   }
@@ -42,6 +49,12 @@ export function parseCliArgs(): CliOptions {
     clipHeight: values["clip-height"]
       ? parseInt(values["clip-height"], 10)
       : CLIP_HEIGHT,
+    style: values.style ?? DEFAULT_STYLE,
+    negative: values.negative ?? DEFAULT_NEGATIVE,
+    regenerate: values.regenerate
+      ? values.regenerate.split(",").map((s) => s.trim())
+      : undefined,
+    yes: values.yes ?? false,
   };
 }
 
@@ -94,9 +107,11 @@ export async function validateImageGroups(
   const missingPhotos: string[] = [];
   for (const group of groups) {
     if (group.imageType !== "実写" && group.imageType !== "図解") continue;
-    const found = photoFiles.some((f) =>
-      path.basename(f).startsWith(group.imageId),
-    );
+    const found = photoFiles.some((f) => {
+      const name = path.basename(f);
+      const ext = path.extname(f);
+      return name === group.imageId + ext;
+    });
     if (!found) missingPhotos.push(group.imageId);
   }
   if (missingPhotos.length > 0) {
@@ -105,3 +120,40 @@ export async function validateImageGroups(
     );
   }
 }
+
+/**
+ * Ask user for confirmation via stdin. Returns true if user confirms.
+ */
+export async function confirm(message: string): Promise<boolean> {
+  process.stdout.write(`${message} (y/N): `);
+  for await (const line of console) {
+    const answer = line.trim().toLowerCase();
+    return answer === "y" || answer === "yes";
+  }
+  return false;
+}
+
+// --- Subcommand dispatch ---
+async function main() {
+  const subcommand = Bun.argv[2];
+  const restArgs = Bun.argv.slice(3);
+
+  switch (subcommand) {
+    case "insert":
+      await runInsert(restArgs);
+      break;
+    case "template":
+      await runTemplate(restArgs);
+      break;
+    default:
+      console.error("使用法: ymm-tools <insert|template> [options]");
+      console.error("  insert    - 画像自動挿入");
+      console.error("  template  - テンプレート生成");
+      process.exit(1);
+  }
+}
+
+main().catch((err) => {
+  console.error("エラー:", err instanceof Error ? err.message : err);
+  process.exit(1);
+});

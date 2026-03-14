@@ -16,7 +16,11 @@ describe("generateSingle retry logic", () => {
       ok: true,
       status: 200,
       json: async () => ({
-        predictions: [{ bytesBase64Encoded: "dGVzdA==", mimeType: "image/jpeg" }],
+        candidates: [{
+          content: {
+            parts: [{ inlineData: { mimeType: "image/jpeg", data: "dGVzdA==" } }],
+          },
+        }],
       }),
     };
     globalThis.fetch = mock(() => Promise.resolve(mockResponse)) as unknown as typeof fetch;
@@ -83,11 +87,31 @@ describe("generateSingle retry logic", () => {
     expect(RETRYABLE_STATUS_CODES.has(403)).toBe(false);
   });
 
-  test("throws on empty predictions", async () => {
+  test("throws on empty candidates", async () => {
     const mockResponse = {
       ok: true,
       status: 200,
-      json: async () => ({ predictions: [] }),
+      json: async () => ({ candidates: [{ content: {} }] }),
+    };
+    globalThis.fetch = mock(() => Promise.resolve(mockResponse)) as unknown as typeof fetch;
+
+    const { _generateSingleForTest: generateSingle } = await import("../src/imagen.ts");
+    await expect(generateSingle("test prompt", "fake-key")).rejects.toThrow(
+      "APIからレスポンスが返されませんでした",
+    );
+  });
+
+  test("throws on missing image data in parts", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [{
+          content: {
+            parts: [{ text: "some text response" }],
+          },
+        }],
+      }),
     };
     globalThis.fetch = mock(() => Promise.resolve(mockResponse)) as unknown as typeof fetch;
 

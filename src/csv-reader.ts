@@ -154,6 +154,11 @@ export async function readImageSheet(
       continue;
     }
 
+    const titleCardIdx = colIndex("タイトルカード");
+    const sectionTitleIdx = colIndex("セクションタイトル");
+    const titleCard = titleCardIdx >= 0 ? row[titleCardIdx]?.trim() ?? "" : "";
+    const sectionTitle = sectionTitleIdx >= 0 ? row[sectionTitleIdx]?.trim() ?? "" : "";
+
     entries.push({
       character,
       serif,
@@ -162,6 +167,8 @@ export async function readImageSheet(
       imageType,
       referenceUrl,
       aiPrompt,
+      ...(titleCard && { titleCard }),
+      ...(sectionTitle && { sectionTitle }),
     });
   }
 
@@ -185,4 +192,81 @@ export async function readImageSheet(
   }
 
   return Array.from(groupMap.values());
+}
+
+const SECTION_REQUIRED_HEADERS = ["キャラ", "セリフ"];
+
+/**
+ * Read CSV/xlsx for template command (section info only).
+ * Requires at minimum: キャラ, セリフ columns.
+ * Optionally reads: タイトルカード, セクションタイトル columns.
+ * Returns all rows as ImageEntry[] (no grouping).
+ */
+export async function readSectionSheet(
+  filePath: string,
+): Promise<ImageEntry[]> {
+  const ext = path.extname(filePath).toLowerCase();
+  let rows: string[][];
+
+  if (ext === ".xlsx") {
+    rows = await readXlsx(filePath);
+  } else if (ext === ".csv") {
+    rows = await readCsv(filePath);
+  } else {
+    throw new Error(`未対応のファイル形式: ${ext}（.csv または .xlsx のみ）`);
+  }
+
+  if (rows.length < 2) {
+    throw new Error("データ行がありません");
+  }
+
+  const headers = rows[0]!;
+  const trimmedHeaders = headers.map((h) => h.trim());
+
+  // Validate minimal required headers
+  for (const required of SECTION_REQUIRED_HEADERS) {
+    if (!trimmedHeaders.includes(required)) {
+      throw new Error(
+        `必須列「${required}」が見つかりません。ヘッダー: [${trimmedHeaders.join(", ")}]`,
+      );
+    }
+  }
+
+  const colIndex = (name: string) => trimmedHeaders.indexOf(name);
+
+  const entries: ImageEntry[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]!;
+    const character = row[colIndex("キャラ")]?.trim() ?? "";
+    const serif = row[colIndex("セリフ")]?.trim() ?? "";
+
+    if (!character || !serif) continue; // skip empty rows
+
+    // Optional columns (may not exist in minimal CSV)
+    const imageId = colIndex("画像ID") >= 0 ? row[colIndex("画像ID")]?.trim() ?? "" : "";
+    const description = colIndex("必要な画像") >= 0 ? row[colIndex("必要な画像")]?.trim() ?? "" : "";
+    const imageTypeRaw = colIndex("画像種別") >= 0 ? row[colIndex("画像種別")]?.trim() ?? "" : "";
+    const referenceUrl = colIndex("参考文献URL") >= 0 ? row[colIndex("参考文献URL")]?.trim() ?? "" : "";
+    const aiPrompt = colIndex("AI用プロンプト") >= 0 ? row[colIndex("AI用プロンプト")]?.trim() ?? "" : "";
+    const titleCard = colIndex("タイトルカード") >= 0 ? row[colIndex("タイトルカード")]?.trim() ?? "" : "";
+    const sectionTitle = colIndex("セクションタイトル") >= 0 ? row[colIndex("セクションタイトル")]?.trim() ?? "" : "";
+
+    const imageType = (imageTypeRaw === "AI" || imageTypeRaw === "実写" || imageTypeRaw === "図解")
+      ? imageTypeRaw
+      : "AI"; // default for template command (not used)
+
+    entries.push({
+      character,
+      serif,
+      imageId,
+      description,
+      imageType,
+      referenceUrl,
+      aiPrompt,
+      ...(titleCard && { titleCard }),
+      ...(sectionTitle && { sectionTitle }),
+    });
+  }
+
+  return entries;
 }

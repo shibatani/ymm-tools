@@ -7,6 +7,8 @@ export interface ImageEntry {
   imageType: "AI" | "実写" | "図解"; // 画像種別
   referenceUrl: string; // 参考文献URL
   aiPrompt: string; // AI用プロンプト
+  titleCard?: string; // タイトルカード
+  sectionTitle?: string; // セクションタイトル
 }
 
 // Grouped by imageId
@@ -51,6 +53,10 @@ export interface CliOptions {
   maxGenerate: number | undefined;
   clipWidth: number;
   clipHeight: number;
+  style: string;
+  negative: string;
+  regenerate: string[] | undefined;
+  yes: boolean;
 }
 
 // AnimatedValue structure in ymmp
@@ -115,6 +121,22 @@ export interface YmmpData {
   Timelines: Array<{ Items: YmmpItem[] }>;
   Characters: unknown[];
   [key: string]: unknown;
+}
+
+// Section definition extracted from CSV
+export interface SectionDefinition {
+  titleCard: string; // タイトルカードのテキスト（空文字ならタイトルカード挿入なし）
+  sectionTitle: string; // セクションタイトルのテキスト（空文字ならタイトルなし）
+  character: string; // セクション先頭行のキャラ名（VoiceItemマッチング用）
+  serif: string; // セクション先頭行のセリフ（VoiceItemマッチング用）
+}
+
+// Section with frame position after VoiceItem matching
+export interface Section {
+  titleCard: string;
+  sectionTitle: string;
+  frame: number; // セクション開始フレーム（シフト前の元フレーム）
+  length: number; // セクションの長さ（次のセクション開始 or 動画末尾まで）
 }
 
 // Match report entry

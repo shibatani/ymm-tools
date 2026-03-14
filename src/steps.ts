@@ -99,9 +99,11 @@ export async function step5_insertPhotos(
     }
 
     // Find matching photo file
-    const photoFile = photoFiles.find((f) =>
-      path.basename(f).startsWith(block.group.imageId),
-    );
+    const photoFile = photoFiles.find((f) => {
+      const name = path.basename(f);
+      const ext = path.extname(f);
+      return name === block.group.imageId + ext;
+    });
     if (!photoFile) {
       console.warn(`  警告: ${block.group.imageId} の画像ファイルが見つかりません`);
       skipped.push(block.group.imageId);
@@ -174,6 +176,8 @@ export async function step6_generateAi(
   blocks: ImageBlock[],
   apiKey: string,
   outputDir: string,
+  style: string,
+  negative: string,
   maxGenerate?: number,
 ): Promise<GenerateResult[]> {
   const aiBlocks = blocks.filter((b) => b.group.imageType === "AI");
@@ -190,15 +194,19 @@ export async function step6_generateAi(
     const safeDesc = block.group.description
       .replace(/[/\\:*?"<>|]/g, "_")
       .slice(0, DESC_MAX_LENGTH);
+    // Prepend style prefix and append negative suffix
+    let prompt = block.group.aiPrompt;
+    if (style) prompt = `${style}, ${prompt}`;
+    if (negative) prompt = `${prompt}. ${negative}`;
     return {
       imageId: block.group.imageId,
-      prompt: block.group.aiPrompt,
+      prompt,
       outputPath: path.join(outputDir, `${block.group.imageId}_${safeDesc}.jpg`),
       description: block.group.description,
     };
   });
 
-  console.log(`\nAI画像生成: ${tasks.length}枚`);
+  console.log(`\nAI画像生成: ${tasks.length}枚 (model: gemini-flash${style ? `, style: "${style}"` : ""})`);
   return generateImages(tasks, apiKey, maxGenerate);
 }
 
@@ -224,9 +232,10 @@ export async function step7_insertAi(
     }
 
     // Find generated image file
-    const imageFile = outputFiles.find((f) =>
-      f.startsWith(block.group.imageId),
-    );
+    const imageFile = outputFiles.find((f) => {
+      const base = path.basename(f, path.extname(f)).split("_")[0];
+      return base === block.group.imageId;
+    });
     if (!imageFile) {
       skipped.push(block.group.imageId);
       continue;
