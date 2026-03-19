@@ -29,10 +29,8 @@ export const DESC_MAX_LENGTH = 50;
 export const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 // Default prompt style and negative
-export const DEFAULT_STYLE = "anime style illustration with reimu and marisa from touhou project";
-// [実験中] ネガティブプロンプトを一時的に無効化。テキスト生成の品質を比較検証中。
-// export const NEGATIVE_PROMPT_FULL = "Do not include any text, letters, words, numbers, kanji, hiragana, katakana, characters, typography, caption, subtitle, signs, signage, banners, posters, shop signs, storefront signs, neon signs, billboards, placards, labels, logos, symbols, gibberish text, random letters, or corrupted text in the image";
-export const DEFAULT_NEGATIVE = "";
+export const DEFAULT_STYLE = "soft watercolor anime illustration, muted warm colors. Two characters: reimu and marisa from touhou project.";
+export const DEFAULT_NEGATIVE = "No text, no letters, no words, no numbers";
 
 // Supported image extensions for YMM4
 export const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".bmp"]);
