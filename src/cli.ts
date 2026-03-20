@@ -6,6 +6,7 @@ import { CLIP_WIDTH, CLIP_HEIGHT } from "./util.ts";
 import { DEFAULT_STYLE, DEFAULT_NEGATIVE } from "./constants.ts";
 import { runInsert } from "./commands/insert.ts";
 import { runTemplate } from "./commands/template.ts";
+import { runFind } from "./commands/find.ts";
 
 export function parseInsertArgs(args: string[]): CliOptions {
   const { values } = parseArgs({
@@ -145,10 +146,14 @@ async function main() {
     case "template":
       await runTemplate(restArgs);
       break;
+    case "find":
+      await runFind(restArgs);
+      break;
     default:
-      console.error("使用法: ymm-tools <insert|template> [options]");
+      console.error("使用法: ymm-tools <insert|template|find> [options]");
       console.error("  insert    - 画像自動挿入");
       console.error("  template  - テンプレート生成");
+      console.error("  find      - 動画名でファイル検索");
       process.exit(1);
   }
 }
