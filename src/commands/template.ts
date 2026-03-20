@@ -9,6 +9,7 @@ import {
   selectBgm,
 } from "../template-builder.ts";
 import { TITLE_CARD_LENGTH, TMPL_LAYER } from "../constants.ts";
+import { applyExpressions } from "../expression.ts";
 import type { YmmpItem } from "../types.ts";
 
 interface TemplateOptions {
@@ -94,6 +95,39 @@ export async function runTemplate(args: string[]) {
     console.log(`  ${stLabel} → Frame ${s.frame}, Length ${s.length} (${durationSec}s) | ${titleLabel}`);
   }
 
+  // Step 4.5: 表情適用
+  console.log("\n--- 表情適用 ---");
+  const expressionResult = applyExpressions(csvEntries, voiceItems, items, opts.dryRun);
+
+  if (expressionResult.unknownExpressions.length > 0) {
+    console.warn(`⚠ 未定義の表情名: ${expressionResult.unknownExpressions.join(", ")}`);
+    console.warn("  → 対応する表情: 焦り, にやり, 驚き, 悲しみ, 泣く, 怒り");
+  }
+
+  if (expressionResult.applied.length > 0) {
+    console.log(`適用: ${expressionResult.applied.length}件 / スキップ(通常): ${expressionResult.skipped}件`);
+    for (const m of expressionResult.applied) {
+      const serifPreview = m.serif.length > 25 ? m.serif.slice(0, 25) + "..." : m.serif;
+      console.log(`  [${m.character}] 「${serifPreview}」 → ${m.expression}`);
+    }
+    if (expressionResult.unmatched.length > 0) {
+      console.log(`マッチ失敗: ${expressionResult.unmatched.length}件`);
+      for (const u of expressionResult.unmatched) {
+        const serifPreview = u.serif.length > 25 ? u.serif.slice(0, 25) + "..." : u.serif;
+        console.log(`  ❌ [${u.character}] 「${serifPreview}」 → ${u.expression}`);
+      }
+    }
+    // Expression summary by type
+    const counts = new Map<string, number>();
+    for (const m of expressionResult.applied) {
+      counts.set(m.expression, (counts.get(m.expression) ?? 0) + 1);
+    }
+    const summary = [...counts.entries()].map(([k, v]) => `${k}: ${v}件`).join(" / ");
+    console.log(`表情サマリー: ${summary}`);
+  } else {
+    console.log("表情列なし、または全て通常表情");
+  }
+
   if (opts.dryRun) {
     const titleCardCount = sections.filter((s) => s.titleCard).length;
     const totalShift = titleCardCount * TITLE_CARD_LENGTH;
@@ -102,6 +136,7 @@ export async function runTemplate(args: string[]) {
     console.log(`  タイトルカード: ${titleCardCount}件 → フレームシフト: +${totalShift}f`);
     console.log(`  VoiceItem数: ${voiceItems.length}件 (Layer 1→${TMPL_LAYER.VOICE_1}, 2→${TMPL_LAYER.VOICE_2} に移動予定)`);
     console.log(`  生成予定アイテム: タイトルカード ${titleCardCount * 5}件 + コンテンツセクション ${sections.length}件`);
+    console.log(`  表情適用: ${expressionResult.applied.length}件`);
     return;
   }
 
@@ -223,5 +258,6 @@ export async function runTemplate(args: string[]) {
   console.log(`  タイトルカード: ${titleCardCount}件 (${titleCardCount * 5} items)`);
   console.log(`  コンテンツセクション: ${contentSectionCount}件`);
   console.log(`  VoiceItem レイヤー移動: ${movedCount}件`);
+  console.log(`  表情適用: ${expressionResult.applied.length}件`);
   console.log(`  累積フレームシフト: +${cumulativeShift}f`);
 }

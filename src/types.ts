@@ -9,6 +9,7 @@ export interface ImageEntry {
   aiPrompt: string; // AI用プロンプト
   titleCard?: string; // タイトルカード
   sectionTitle?: string; // セクションタイトル
+  expression?: string; // 表情（空=通常）
 }
 
 // Grouped by imageId

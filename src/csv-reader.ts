@@ -156,8 +156,10 @@ export async function readImageSheet(
 
     const titleCardIdx = colIndex("タイトルカード");
     const sectionTitleIdx = colIndex("セクションタイトル");
+    const expressionIdx = colIndex("表情");
     const titleCard = titleCardIdx >= 0 ? row[titleCardIdx]?.trim() ?? "" : "";
     const sectionTitle = sectionTitleIdx >= 0 ? row[sectionTitleIdx]?.trim() ?? "" : "";
+    const expression = expressionIdx >= 0 ? row[expressionIdx]?.trim() ?? "" : "";
 
     entries.push({
       character,
@@ -169,6 +171,7 @@ export async function readImageSheet(
       aiPrompt,
       ...(titleCard && { titleCard }),
       ...(sectionTitle && { sectionTitle }),
+      ...(expression && { expression }),
     });
   }
 
@@ -250,6 +253,7 @@ export async function readSectionSheet(
     const aiPrompt = colIndex("AI用プロンプト") >= 0 ? row[colIndex("AI用プロンプト")]?.trim() ?? "" : "";
     const titleCard = colIndex("タイトルカード") >= 0 ? row[colIndex("タイトルカード")]?.trim() ?? "" : "";
     const sectionTitle = colIndex("セクションタイトル") >= 0 ? row[colIndex("セクションタイトル")]?.trim() ?? "" : "";
+    const expression = colIndex("表情") >= 0 ? row[colIndex("表情")]?.trim() ?? "" : "";
 
     const imageType = (imageTypeRaw === "AI" || imageTypeRaw === "実写" || imageTypeRaw === "図解")
       ? imageTypeRaw
@@ -265,6 +269,7 @@ export async function readSectionSheet(
       aiPrompt,
       ...(titleCard && { titleCard }),
       ...(sectionTitle && { sectionTitle }),
+      ...(expression && { expression }),
     });
   }
 

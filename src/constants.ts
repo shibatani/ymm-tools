@@ -86,6 +86,23 @@ export const SE_LENGTH = 53;
 export const FACE_NORMAL = { eyebrow: "00.png", eye: "00.png", mouth: "00.png" };
 export const FACE_TITLE = { eyebrow: "12.png", eye: "26.png", mouth: "22.png" };
 
+// 表情マッピング（CSV「表情」列 → パーツ番号）
+// eyebrow が null の場合は眉パーツ非表示
+export interface ExpressionDef {
+  eyebrow: string | null;
+  eye: string;
+  mouth: string;
+}
+
+export const EXPRESSION_MAP: Record<string, ExpressionDef> = {
+  "焦り":   { eyebrow: null,     eye: "06.png", mouth: "13.png" },
+  "にやり": { eyebrow: "00.png", eye: "01.png", mouth: "06.png" },
+  "驚き":   { eyebrow: "00.png", eye: "05.png", mouth: "11.png" },
+  "悲しみ": { eyebrow: "03.png", eye: "02.png", mouth: "01.png" },
+  "泣く":   { eyebrow: "03.png", eye: "04.png", mouth: "07.png" },
+  "怒り":   { eyebrow: "01.png", eye: "01.png", mouth: "11.png" },
+};
+
 // 立ち絵のキャラクターフォルダ
 export const TACHIE_FOLDERS = {
   reimu: "C:\\れいむ",
