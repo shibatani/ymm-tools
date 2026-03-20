@@ -48,15 +48,24 @@ bun run src/cli.ts insert --csv <path> --ymmp <path> --photos <dir> --output <pa
 3. ymmpがWindows側にしかない場合は `prlctl exec "Windows 11" powershell -Command "Copy-Item '<Windowsパス>' '\\Mac\Home\Downloads\' -Force"` でMacにコピー
 4. 確認後、適切なコマンドを組み立てて実行
 
+### 重要: 必ずドライランを先に実行する
+
+template / insert いずれも、本実行の前に必ず `--dry-run` を付けて実行すること。
+ドライラン結果を表示した後、「本実行しますか？」とユーザーに確認し、承認を得てから本実行する。
+
 ### template の流れ
 
 1. find で検索
 2. Windows から ymmp をコピー
-3. `template --csv <CSV> --ymmp <コピーしたymmp> --output ~/Movies/{動画名}/{動画名}-templete.ymmp`
-4. 「YMM4で確認・修正してください」と伝える
+3. `template --csv <CSV> --ymmp <コピーしたymmp> --output ~/Movies/{動画名}/{動画名}-templete.ymmp --dry-run` でドライラン
+4. ドライラン結果を表示し、「本実行しますか？」と確認
+5. 承認後、`--dry-run` を外して本実行
+6. 「YMM4で確認・修正してください」と伝える
 
 ### insert の流れ
 
 1. find で検索
 2. template 出力の ymmp を入力として使用（`~/Movies/{動画名}/{動画名}-templete.ymmp`）
-3. `insert --csv <CSV> --ymmp <テンプレートymmp> --photos ~/Movies/{動画名}/ --output ~/Movies/{動画名}/{動画名}-image.ymmp`
+3. `insert --csv <CSV> --ymmp <テンプレートymmp> --photos ~/Movies/{動画名}/ --output ~/Movies/{動画名}/{動画名}-image.ymmp --dry-run` でドライラン
+4. ドライラン結果を表示し、「本実行しますか？」と確認
+5. 承認後、`--dry-run` を外して本実行
