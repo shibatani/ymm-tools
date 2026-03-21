@@ -229,17 +229,26 @@ export function titleCardFontSize(_text: string): number {
   return 150;
 }
 
-/** Compute font size for section title text based on character count */
+/** Compute font size for section title text based on character count and line count */
 export function sectionTitleFontSize(text: string): number {
-  const len = text.replace(/\r?\n/g, "").length;
-  if (len <= 5) return 89.9;
-  if (len <= 8) {
-    // 5〜8文字: 枠に適切なpaddingを持つよう動的に縮小
-    // 5文字で89.9pt、8文字で64pt に線形補間
-    return 89.9 - (89.9 - 64) * (len - 5) / 3;
+  const lines = text.split(/\r?\n/);
+  const lineCount = lines.length;
+  const totalLen = text.replace(/\r?\n/g, "").length;
+  const maxLineLen = Math.max(...lines.map((l) => l.length));
+
+  // 1行テキスト
+  if (lineCount === 1) {
+    if (totalLen <= 5) return 89.9;
+    if (totalLen <= 8) {
+      return 89.9 - (89.9 - 64) * (totalLen - 5) / 3;
+    }
+    return 61.8;
   }
-  // 8文字超: 2行表示
-  return 61.8;
+
+  // 2行以上テキスト: 合計文字数でサイズ決定
+  if (totalLen >= 7) return 63.6;
+  if (totalLen >= 5) return 63.3;
+  return 63.3;
 }
 
 /**
