@@ -5,6 +5,7 @@ import type { ImageBlock, YmmpData, YmmpItem } from "./types.ts";
 import {
   buildClippingShapeItem,
   buildImageItem,
+  buildVideoItem,
   buildTextItem,
   getItems,
   hasRemark,
@@ -38,13 +39,18 @@ function classifyExtension(filePath: string): "image" | "video" | "rejected" | "
 }
 
 /**
- * Build an ImageItem for any file type (always static image, no video playback)
+ * Build an ImageItem or VideoItem depending on file type.
+ * Video types (webp, mp4, etc.) get looped playback and clipping.
  */
 function buildItemForFile(
   template: YmmpItem | undefined,
   filePath: string,
   params: { frame: number; length: number; zoom: number; imageId: string },
+  extKind: "image" | "video" | "rejected" | "unknown" = "image",
 ): YmmpItem {
+  if (extKind === "video") {
+    return buildVideoItem(template, { filePath, ...params });
+  }
   return buildImageItem(template, { filePath, ...params });
 }
 
@@ -148,7 +154,7 @@ export async function step5_insertPhotos(
       length: block.length,
       zoom,
       imageId: block.group.imageId,
-    });
+    }, extKind);
     items.push(item);
     inserted++;
 
