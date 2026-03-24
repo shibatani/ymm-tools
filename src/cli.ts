@@ -7,6 +7,7 @@ import { DEFAULT_STYLE, DEFAULT_NEGATIVE } from "./constants.ts";
 import { runInsert } from "./commands/insert.ts";
 import { runTemplate } from "./commands/template.ts";
 import { runFind } from "./commands/find.ts";
+import { runRename } from "./commands/rename.ts";
 
 export function parseInsertArgs(args: string[]): CliOptions {
   const { values } = parseArgs({
@@ -149,11 +150,15 @@ async function main() {
     case "find":
       await runFind(restArgs);
       break;
+    case "rename":
+      await runRename(restArgs);
+      break;
     default:
-      console.error("使用法: ymm-tools <insert|template|find> [options]");
+      console.error("使用法: ymm-tools <insert|template|find|rename> [options]");
       console.error("  insert    - 画像自動挿入");
       console.error("  template  - テンプレート生成");
       console.error("  find      - 動画名でファイル検索");
+      console.error("  rename    - 実写/図解画像のリネーム");
       process.exit(1);
   }
 }

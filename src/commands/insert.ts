@@ -131,6 +131,23 @@ export async function runInsert(args: string[]) {
     );
   }
 
+  // Warn if any block spans across chapter boundaries
+  if (chapters.length > 1) {
+    const chapterStarts = chapters.map((c) => c.frame).sort((a, b) => a - b);
+    for (const block of blocks) {
+      const blockEnd = block.frame + block.length;
+      for (const cs of chapterStarts) {
+        if (cs > block.frame && cs < blockEnd) {
+          const serifPreview =
+            block.group.entries[0]?.serif.slice(0, 30) ?? "";
+          console.warn(
+            `⚠ 警告: 画像ID ${block.group.imageId} がチャプター境界(Frame ${cs})を跨いでいます (Frame ${block.frame}〜${blockEnd}) | セリフ: "${serifPreview}..."`,
+          );
+        }
+      }
+    }
+  }
+
   // Count by type
   const aiBlocks = blocks.filter((b) => b.group.imageType === "AI");
   const photoBlocks = blocks.filter(
