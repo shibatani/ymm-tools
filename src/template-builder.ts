@@ -88,6 +88,19 @@ function buildTachieItemParameter(
   };
 }
 
+const REPEAT_MOVE_EFFECT = {
+  $type: "YukkuriMovieMaker.Project.Effects.RepeatMoveEffect, YukkuriMovieMaker",
+  X: makeAnimatedValue(0),
+  Y: makeAnimatedValue(10),
+  Z: makeAnimatedValue(0),
+  Span: makeAnimatedValue(3),
+  EasingType: "Sine",
+  EasingMode: "InOut",
+  IsCentering: true,
+  IsEnabled: true,
+  Remark: "",
+};
+
 function buildTachieItem(
   characterName: string,
   folder: string,
@@ -96,8 +109,9 @@ function buildTachieItem(
   frame: number,
   length: number,
   layer: number,
+  opts?: { repeatMove?: boolean },
 ): YmmpItem {
-  return {
+  const item = {
     $type: ITEM_TYPES.tachie,
     CharacterName: characterName,
     TachieItemParameter: buildTachieItemParameter(folder, face),
@@ -106,6 +120,12 @@ function buildTachieItem(
       isInverted: pos.isInverted,
     }),
   } as YmmpItem;
+
+  if (opts?.repeatMove) {
+    item.VideoEffects = [{ ...REPEAT_MOVE_EFFECT }];
+  }
+
+  return item;
 }
 
 // --- ImageItem builder ---
@@ -132,6 +152,7 @@ function buildAudioItem(
   frame: number,
   length: number,
   layer: number,
+  opts?: { isLooped?: boolean },
 ): YmmpItem {
   return {
     $type: ITEM_TYPES.audio,
@@ -144,7 +165,7 @@ function buildAudioItem(
     ContentOffset: "00:00:00",
     FadeIn: 0,
     FadeOut: 0,
-    IsLooped: false,
+    IsLooped: opts?.isLooped ?? false,
     EchoIsEnabled: false,
     EchoInterval: 0.1,
     EchoAttenuation: 40,
@@ -412,16 +433,24 @@ export function buildContentSectionItems(
   length: number,
   sectionTitle: string,
   bgmPath: string,
+  opts?: { skipBgm?: boolean },
 ): YmmpItem[] {
-  const items: YmmpItem[] = [
+  const items: YmmpItem[] = [];
+
+  if (!opts?.skipBgm) {
     // Layer 1: BGM
-    buildAudioItem(
-      bgmPath,
-      BGM_VOLUME,
-      frame,
-      length,
-      TMPL_LAYER.BGM,
-    ),
+    items.push(
+      buildAudioItem(
+        bgmPath,
+        BGM_VOLUME,
+        frame,
+        length,
+        TMPL_LAYER.BGM,
+      ),
+    );
+  }
+
+  items.push(
     // Layer 2: Serif frame
     buildImageItem(
       TEMPLATE_ASSETS.serifFrame,
@@ -438,7 +467,7 @@ export function buildContentSectionItems(
       length,
       TMPL_LAYER.content.BACKGROUND,
     ),
-    // Layer 4: Marisa (normal face)
+    // Layer 4: Marisa (normal face, with repeat move)
     buildTachieItem(
       "ゆっくり魔理沙",
       TACHIE_FOLDERS.marisa,
@@ -447,8 +476,9 @@ export function buildContentSectionItems(
       frame,
       length,
       TMPL_LAYER.content.TACHIE_MARISA,
+      { repeatMove: true },
     ),
-    // Layer 5: Reimu (normal face)
+    // Layer 5: Reimu (normal face, with repeat move)
     buildTachieItem(
       "ゆっくり霊夢",
       TACHIE_FOLDERS.reimu,
@@ -457,10 +487,11 @@ export function buildContentSectionItems(
       frame,
       length,
       TMPL_LAYER.content.TACHIE_REIMU,
+      { repeatMove: true },
     ),
     // Layer 6: Shape
     buildShapeItem(frame, length, TMPL_LAYER.content.SHAPE),
-  ];
+  );
 
   // Layer 7: Section title (only if sectionTitle is non-empty)
   if (sectionTitle) {
@@ -482,6 +513,19 @@ export function buildContentSectionItems(
   }
 
   return items;
+}
+
+/**
+ * Build a looped BGM item spanning a given frame range.
+ */
+export function buildBgmItem(
+  bgmPath: string,
+  frame: number,
+  length: number,
+): YmmpItem {
+  return buildAudioItem(bgmPath, BGM_VOLUME, frame, length, TMPL_LAYER.BGM, {
+    isLooped: true,
+  });
 }
 
 /**

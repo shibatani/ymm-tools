@@ -6,6 +6,7 @@ import { extractSections, matchSections } from "../section.ts";
 import {
   buildTitleCardItems,
   buildContentSectionItems,
+  buildBgmItem,
   selectBgm,
 } from "../template-builder.ts";
 import { TITLE_CARD_LENGTH, TMPL_LAYER } from "../constants.ts";
@@ -131,11 +132,33 @@ export async function runTemplate(args: string[]) {
   if (opts.dryRun) {
     const titleCardCount = sections.filter((s) => s.titleCard).length;
     const totalShift = titleCardCount * TITLE_CARD_LENGTH;
+
+    // BGM groups preview
+    console.log("\n--- BGM グループ（プレビュー） ---");
+    let groupStart = 0;
+    const bgmGroupsPreview: { startIdx: number; endIdx: number }[] = [];
+    for (let i = 1; i < sections.length; i++) {
+      if (sections[i]!.titleCard) {
+        bgmGroupsPreview.push({ startIdx: groupStart, endIdx: i - 1 });
+        groupStart = i;
+      }
+    }
+    bgmGroupsPreview.push({ startIdx: groupStart, endIdx: sections.length - 1 });
+    for (const group of bgmGroupsPreview) {
+      const groupSections = sections
+        .slice(group.startIdx, group.endIdx + 1)
+        .map((s) => s.sectionTitle || "(タイトルなし)")
+        .join(" → ");
+      const bgmType = group.startIdx === 0 ? "intro" : group.endIdx === sections.length - 1 ? "outro" : "main";
+      console.log(`  [${bgmType}] ${groupSections} (looped)`);
+    }
+
     console.log("\n=== Dry Run サマリー ===");
     console.log(`  セクション数: ${sections.length}件`);
     console.log(`  タイトルカード: ${titleCardCount}件 → フレームシフト: +${totalShift}f`);
+    console.log(`  BGMグループ: ${bgmGroupsPreview.length}件 (looped)`);
     console.log(`  VoiceItem数: ${voiceItems.length}件 (Layer 1→${TMPL_LAYER.VOICE_1}, 2→${TMPL_LAYER.VOICE_2} に移動予定)`);
-    console.log(`  生成予定アイテム: タイトルカード ${titleCardCount * 5}件 + コンテンツセクション ${sections.length}件`);
+    console.log(`  生成予定アイテム: タイトルカード ${titleCardCount * 5}件 + コンテンツセクション ${sections.length}件 + BGM ${bgmGroupsPreview.length}件`);
     console.log(`  表情適用: ${expressionResult.applied.length}件`);
     return;
   }
@@ -192,35 +215,36 @@ export async function runTemplate(args: string[]) {
   let titleCardCount = 0;
   let contentSectionCount = 0;
 
-  // Recompute section frames after shift
+  // Precompute shifted frames and content lengths for each section
+  interface ShiftedSection {
+    index: number;
+    hasTitleCard: boolean;
+    contentFrame: number;
+    contentLength: number;
+  }
+  const shiftedSections: ShiftedSection[] = [];
   let shiftAccum = 0;
+
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i]!;
     const hasTitleCard = !!section.titleCard;
-
-    // Frame positions after cumulative shift
     const sectionStartFrame = section.frame + shiftAccum;
 
     if (hasTitleCard) {
-      // Insert title card
       const titleCardFrame = sectionStartFrame;
       newItems.push(...buildTitleCardItems(titleCardFrame, section.titleCard));
       titleCardCount++;
       shiftAccum += TITLE_CARD_LENGTH;
     }
 
-    // Content section starts after title card (if any)
     const contentFrame = sectionStartFrame + (hasTitleCard ? TITLE_CARD_LENGTH : 0);
 
-    // Compute content length
     let contentLength: number;
     if (i < sections.length - 1) {
-      // Until next section's shifted start
       const nextOrigFrame = sections[i + 1]!.frame;
       const nextShiftedFrame = nextOrigFrame + shiftAccum;
       contentLength = nextShiftedFrame - contentFrame;
     } else {
-      // Last section: until the end of all VoiceItems (after shift)
       const lastVoiceEnd = voiceItemsInYmmp.reduce(
         (max, vi) => Math.max(max, vi.Frame + vi.Length),
         0,
@@ -228,11 +252,42 @@ export async function runTemplate(args: string[]) {
       contentLength = lastVoiceEnd - contentFrame;
     }
 
-    const bgmPath = selectBgm(i, sections.length);
+    shiftedSections.push({ index: i, hasTitleCard, contentFrame, contentLength });
+
+    // Build content section items without BGM (BGM is grouped separately)
     newItems.push(
-      ...buildContentSectionItems(contentFrame, contentLength, section.sectionTitle, bgmPath),
+      ...buildContentSectionItems(contentFrame, contentLength, section.sectionTitle, "", { skipBgm: true }),
     );
     contentSectionCount++;
+  }
+
+  // Step 8.5: BGM グループ生成（タイトルカード境界でグループ化、ループ有効）
+  console.log("\n--- BGM グループ生成 ---");
+  // Group sections: a new group starts at the first section or any section with a title card
+  const bgmGroups: { startIdx: number; endIdx: number }[] = [];
+  let groupStart = 0;
+  for (let i = 1; i < shiftedSections.length; i++) {
+    if (shiftedSections[i]!.hasTitleCard) {
+      bgmGroups.push({ startIdx: groupStart, endIdx: i - 1 });
+      groupStart = i;
+    }
+  }
+  bgmGroups.push({ startIdx: groupStart, endIdx: shiftedSections.length - 1 });
+
+  for (const group of bgmGroups) {
+    const first = shiftedSections[group.startIdx]!;
+    const last = shiftedSections[group.endIdx]!;
+    const bgmFrame = first.contentFrame;
+    const bgmLength = (last.contentFrame + last.contentLength) - bgmFrame;
+    const bgmPath = selectBgm(first.index, sections.length);
+    newItems.push(buildBgmItem(bgmPath, bgmFrame, bgmLength));
+
+    const groupSections = sections
+      .slice(group.startIdx, group.endIdx + 1)
+      .map((s) => s.sectionTitle || "(タイトルなし)")
+      .join(" → ");
+    const durationSec = (bgmLength / 60).toFixed(1);
+    console.log(`  ${groupSections} (${durationSec}s, looped)`);
   }
 
   console.log(`タイトルカード: ${titleCardCount}件`);

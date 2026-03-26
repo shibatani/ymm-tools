@@ -33,7 +33,7 @@ export const DEFAULT_STYLE = "soft watercolor anime illustration, muted warm col
 export const DEFAULT_NEGATIVE = "No text, no letters, no words, no numbers";
 
 // Supported image extensions for YMM4
-export const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".bmp"]);
+export const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".bmp", ".avif"]);
 export const VIDEO_EXTENSIONS = new Set([".webp", ".mp4", ".avi", ".mov", ".wmv"]);
 export const REJECTED_EXTENSIONS = new Set([".gif"]);
 

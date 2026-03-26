@@ -57,6 +57,7 @@ export async function runInsert(args: string[]) {
   if (opts.negative) console.log(`Negative: ${opts.negative}`);
   if (opts.dryRun) console.log("モード: Dry Run");
   if (opts.regenerate) console.log(`再生成対象: ${opts.regenerate.join(", ")}`);
+  if (opts.prompt) console.log(`カスタムプロンプト: ${opts.prompt}`);
 
   // Read inputs
   console.log("\n--- CSV読み込み ---");
@@ -215,6 +216,16 @@ export async function runInsert(args: string[]) {
     }
     console.log(`画像ファイル削除: ${deletedFiles}件`);
     console.log(`ymmpアイテム削除: ${deletedItems}件`);
+
+    // Override AI prompt for regenerate targets if --prompt is specified
+    if (opts.prompt) {
+      for (const block of blocks) {
+        if (opts.regenerate!.includes(block.group.imageId) && block.group.imageType === "AI") {
+          block.group.aiPrompt = opts.prompt;
+        }
+      }
+      console.log(`プロンプト上書き: ${opts.regenerate!.length}件`);
+    }
   }
 
   // Step 4: Insert clipping backgrounds per image block

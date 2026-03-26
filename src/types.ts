@@ -57,6 +57,7 @@ export interface CliOptions {
   style: string;
   negative: string;
   regenerate: string[] | undefined;
+  prompt: string | undefined;
   yes: boolean;
 }
 

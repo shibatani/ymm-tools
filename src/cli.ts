@@ -24,6 +24,7 @@ export function parseInsertArgs(args: string[]): CliOptions {
       style: { type: "string" },
       negative: { type: "string" },
       regenerate: { type: "string" },
+      prompt: { type: "string" },
       yes: { type: "boolean", short: "y", default: false },
     },
     strict: true,
@@ -31,7 +32,7 @@ export function parseInsertArgs(args: string[]): CliOptions {
 
   if (!values.csv || !values.ymmp || !values.photos || !values.output) {
     console.error(
-      "使用法: bun run src/cli.ts insert --csv <path> --ymmp <path> --photos <dir> --output <path> [--dry-run] [--max-generate N] [--clip-width N] [--clip-height N] [--style <prefix>] [--negative <suffix>] [--regenerate 1,2,3] [-y]",
+      "使用法: bun run src/cli.ts insert --csv <path> --ymmp <path> --photos <dir> --output <path> [--dry-run] [--max-generate N] [--clip-width N] [--clip-height N] [--style <prefix>] [--negative <suffix>] [--regenerate 1,2,3] [--prompt <text>] [-y]",
     );
     process.exit(1);
   }
@@ -56,6 +57,7 @@ export function parseInsertArgs(args: string[]): CliOptions {
     regenerate: values.regenerate
       ? values.regenerate.split(",").map((s) => s.trim())
       : undefined,
+    prompt: values.prompt ?? undefined,
     yes: values.yes ?? false,
   };
 }
@@ -80,7 +82,7 @@ export async function validateInputs(opts: CliOptions): Promise<void> {
     throw err;
   }
 
-  if (opts.output === opts.ymmp) {
+  if (opts.output === opts.ymmp && !opts.regenerate) {
     throw new Error("出力先パスは入力ymmpと異なるパスを指定してください");
   }
 }
